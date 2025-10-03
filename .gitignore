@@ -1,0 +1,20 @@
+# Ignore script local
+breathing.sh
+
+# Ignore local SQLite database
+breathing_log.db
+
+# Ignore Jupyter notebooks
+*.ipynb
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Virtual environment
+venv/
+
+
