@@ -11,10 +11,10 @@ breathing_log.db
 __pycache__/
 *.pyc
 
-# Jupyter checkpoints
 .ipynb_checkpoints/
 
-# Virtual environment
 venv/
 
+*.swp
+*.kate-swp
 
