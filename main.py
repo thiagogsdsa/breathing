@@ -10,10 +10,17 @@ conn.close()
 
 # --- Aggregate per day ---
 raw['date'] = pd.to_datetime(raw['date'])
+
+# --- Fill missing days with 0 ---
+
 daily = raw.groupby(raw['date'].dt.date).agg(
     total_minutes=('total_minutes', 'sum'),
     sessions=('sessions', 'sum')
 ).reset_index()
+
+all_dates = pd.date_range(daily['date'].min(), daily['date'].max())
+daily = daily.set_index('date').reindex(
+    all_dates, fill_value=0).rename_axis('date').reset_index()
 
 daily['date_str'] = daily['date'].astype(str)
 
@@ -92,6 +99,44 @@ fig_hist_sessions = go.Figure(go.Histogram(
 fig_hist_sessions.update_layout(
     title="Distribution of Daily Sessions", xaxis_title="Sessions", yaxis_title="Count")
 
+# Distribution/week day
+weekday_order = ['Monday', 'Tuesday', 'Wednesday',
+                 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+# Agrupa minutos e sessões por weekday
+weekday_minutes = raw.groupby('weekday')['total_minutes'].sum().reindex(
+    weekday_order, fill_value=0)
+weekday_sessions = raw.groupby('weekday')['sessions'].sum().reindex(
+    weekday_order, fill_value=0)
+
+fig_weekday_minutes = go.Figure(go.Bar(
+    x=weekday_minutes.index,
+    y=weekday_minutes.values,
+    text=weekday_minutes.values,
+    textposition='outside',
+    marker_color='skyblue'
+))
+fig_weekday_minutes.update_layout(
+    title="Breathing Minutes per Day of Week",
+    xaxis_title="Day of Week",
+    yaxis_title="Total Minutes",
+    yaxis=dict(range=[0, max(weekday_minutes.values)*1.2])
+)
+
+fig_weekday_sessions = go.Figure(go.Bar(
+    x=weekday_sessions.index,
+    y=weekday_sessions.values,
+    text=weekday_sessions.values,
+    textposition='outside',
+    marker_color='lightgreen'
+))
+fig_weekday_sessions.update_layout(
+    title="Breathing Sessions per Day of Week",
+    xaxis_title="Day of Week",
+    yaxis_title="Total Sessions",
+    yaxis=dict(range=[0, max(weekday_sessions.values)*1.2])
+)
+
 # Stats table
 table = go.Figure(data=[go.Table(
     header=dict(values=["Metric", "Minutes", "Sessions"],
@@ -105,6 +150,18 @@ table = go.Figure(data=[go.Table(
 
 motivation_html = """
 <div id="motivation" style="margin: 20px 0; font-family: Arial, sans-serif;">
+
+    <p style="text-align:center;">
+        <img src="https://raw.githubusercontent.com/thiagogsdsa/math/master/fractals/julia/Buddhabrot/output.gif" 
+             alt="Bruddrabrot Fractal" style="max-width:400px;"/>
+    </p>
+
+    <p style="text-align:center; font-style:italic;">
+        Meet the <strong>Bruddrabrot</strong> — a fractal generated in <strong>Julia</strong> 
+        (<a href="https://github.com/thiagogsdsa/math/blob/master/fractals/julia/Buddhabrot/README.md" target="_blank">see here</a>)  
+        that reminds me of a meditating Buda 🧘‍♂️. A whimsical symbol for mindfulness and breathwork!
+    </p>
+
     <h2 style="color:#00796B;">Motivation</h2>
     <p>
         According to scientific studies, working long hours without sufficient rest increases the risk of burnout, lowers productivity, and harms mental health. 
@@ -156,21 +213,48 @@ motivation_html = """
     <h3 style="color:#004D40;">Demonstration</h3>
     <p>Here is a short video demonstrating how my system works:</p>
     
-<iframe width="560" height="315" src="https://www.youtube.com/embed/DwT-EoZOaeI?si=OvzWF930pGPIzwmH&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/DwT-EoZOaeI?si=OvzWF930pGPIzwmH&amp;controls=0" 
+            title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
 </div>
 """
 
+note_text = """
+<p><strong>Note:</strong> I created this system mainly because I don't want the hassle of logging my sessions in a spreadsheet. 
+The only task is to respond "1" in the terminal, which triggers an alert—it helps me break hyperfocus. 
+I plan to continue this practice for years and eventually correlate it with subjective factors, professional performance, and personal growth. 
+I also intend to maintain a personal notebook about my life, projects, feelings, tasks to do, and what has been accomplished. 
+After many months of practice, it will be possible to perform textual analysis, sentiment analysis, and evaluate achievements based on this routine.</p>
+"""
+
+tools = """   
+    <h3 style="color:#004D40;">Tools</h3>
+    <ul>
+    <li><strong>Python</strong> — data processing, visualization (Plotly)</li>
+    <li><strong>SQLite</strong> — lightweight database for logging sessions</li>
+    <li><strong>Bash</strong> — automation and terminal-based prompts</li>
+    <li><strong>HTML/CSS</strong> — dashboard layout</li>
+    </ul> 
+    """
 
 # --- Save to single HTML ---
 with open("index.html", "w") as f:
     f.write("<h1>Triangle Breathing (10, 20, 10)  Dashboard</h1>\n")
     f.write(motivation_html)
+    f.write(tools)
     f.write(fig_minutes.to_html(full_html=False, include_plotlyjs='cdn'))
     f.write(fig_sessions.to_html(full_html=False, include_plotlyjs=False))
     f.write(fig_cum_minutes.to_html(full_html=False, include_plotlyjs=False))
     f.write(fig_cum_sessions.to_html(full_html=False, include_plotlyjs=False))
     f.write(fig_hist_minutes.to_html(full_html=False, include_plotlyjs=False))
     f.write(fig_hist_sessions.to_html(full_html=False, include_plotlyjs=False))
+    f.write(fig_weekday_minutes.to_html(
+        full_html=False, include_plotlyjs=False))
+    f.write(fig_weekday_sessions.to_html(
+        full_html=False, include_plotlyjs=False))
     f.write(table.to_html(full_html=False, include_plotlyjs=False))
+    f.write(note_text)
 
 print("index.html generated successfully with aggregated daily data!")
