@@ -241,6 +241,28 @@ tools = """
 
 # --- Save to single HTML ---
 with open("index.html", "w") as f:
+    f.write("""
+    <style>
+    body {
+        background-color: #f6f7f9;
+        color: #222;
+        font-family: 'Helvetica Neue', 'Segoe UI', sans-serif;
+        margin: 40px;
+    }
+    h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 40px;
+    }
+    .plot {
+        background-color: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 25px auto;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        max-width: 900px;
+    })
+
     f.write("<h1>Triangle Breathing (10, 20, 10)  Dashboard</h1>\n")
     f.write(motivation_html)
     f.write(tools)
