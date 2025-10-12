@@ -264,7 +264,7 @@ triangle_html = """
 </audio>
 
 <audio id="backgroundAudio" loop>
-  <source src="meditation_music.wav" type="audio/wav">
+  <source src="meditation_music.mp3" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio>
 
@@ -387,7 +387,7 @@ animatePhase();
 """
 
 # --- Save to single HTML ---
-with open("index_test.html", "w") as f:
+with open("index.html", "w") as f:
     f.write('<h1 style="margin-top:30px;">Triangle Breathing (10, 20, 10)</h1>\n')
     f.write("""<p style="text-align:center; font-style:italic; color:gray;">
   Click anywhere to activate sound 🎵</p>""")
