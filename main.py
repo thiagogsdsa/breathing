@@ -394,7 +394,7 @@ with open("index.html", "w") as f:
     f.write(triangle_html)
     f.write(motivation_html)
     f.write(tools)
-    f.write('<h1 style="margin-top:30px;">VISUALIZATION OF MY PRACTICES </h1>\n')
+    f.write('<h1 style="margin-top:30px;">My Breathing Practice Journey </h1>\n')
     f.write(fig_minutes.to_html(full_html=False, include_plotlyjs='cdn'))
     f.write(fig_sessions.to_html(full_html=False, include_plotlyjs=False))
     f.write(fig_cum_minutes.to_html(full_html=False, include_plotlyjs=False))
