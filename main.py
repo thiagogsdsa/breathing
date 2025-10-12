@@ -154,8 +154,9 @@ shared_layout = dict(
     plot_bgcolor="rgba(18, 12, 35, 1)",
     font=dict(color="#E6EDF3", family="Helvetica Neue, Segoe UI"),
     title_font=dict(size=18, color="#9CD1FF"),
-    xaxis=dict(showgrid=False, zeroline=False),
-    yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)"),
+    xaxis=dict(showgrid=False, zeroline=False, fixedrange=True),
+    yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)",
+               fixedrange=True),
     margin=dict(l=60, r=30, t=60, b=60)
 )
 
@@ -168,17 +169,6 @@ for fig in [
 
 motivation_html = """
 <div id="motivation" style="margin: 20px 0; font-family: Arial, sans-serif;">
-
-    <p style="text-align:center;">
-        <img src="https://raw.githubusercontent.com/thiagogsdsa/math/master/fractals/julia/Buddhabrot/output.gif" 
-             alt="Bruddrabrot Fractal" style="max-width:400px;"/>
-    </p>
-
-    <p style="text-align:center; font-style:italic;">
-        Meet the <strong>Bruddrabrot</strong> — a fractal generated in <strong>Julia</strong> 
-        (<a href="https://github.com/thiagogsdsa/math/blob/master/fractals/julia/Buddhabrot/README.md" target="_blank">see here</a>)  
-        that reminds me of a meditating Buda 🧘‍♂️. A whimsical symbol for mindfulness and breathwork!
-    </p>
 
     <h2 style="color:#00796B;">Motivation</h2>
     <p>
@@ -257,9 +247,151 @@ tools = """
     </ul> 
     """
 
+triangle_html = """
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;margin:40px 0;">
+  <svg id="triangleSVG" width="500" height="400" viewBox="0 0 500 400">
+    <!-- Triangle and particle will be created via JS -->
+  </svg>
+  <h3 id="breathText">Breathe...</h3>
+  <div id="countdown">Time left: 0s</div>
+  <div id="rounds">Rounds: 0</div>
+  <div id="minutes">Total minutes: 0</div>
+</div>
+
+<audio id="bellAudio">
+  <source src="tibetan_bell.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+<audio id="backgroundAudio" loop>
+  <source src="meditation_music.wav" type="audio/wav">
+  Your browser does not support the audio element.
+</audio>
+
+<script>
+const svg = document.getElementById("triangleSVG");
+const textEl = document.getElementById("breathText");
+const countdownEl = document.getElementById("countdown");
+const roundsEl = document.getElementById("rounds");
+const minutesEl = document.getElementById("minutes");
+const bellAudio = document.getElementById("bellAudio");
+const bgAudio = document.getElementById("backgroundAudio");
+document.addEventListener("click", () => {
+    if(bgAudio.paused){
+        bgAudio.volume = 0.5;
+        bgAudio.play().catch(e => console.log("Audio play blocked:", e));
+    }
+}, {once: true});
+
+
+// ========== PARAMETERS ==========
+const baseWidth = 300;
+const height = 250;
+const particleRadius = 15;
+const strokeColor = "#00d4ff";
+
+const inhaleTime = 10000;
+const holdTime = 20000;
+const exhaleTime = 10000;
+
+const playBellAtVertex = true;
+
+// ========== CALCULATE POINTS ==========
+const centerX = 250;
+const topLeft = {x: centerX - baseWidth/2, y:100};
+const topRight = {x: centerX + baseWidth/2, y:100};
+const bottom = {x: centerX, y: 100 + height};
+
+const vertices = [bottom, topLeft, topRight];
+const tolerance = 2
+
+// Create triangle
+const triangle = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+triangle.setAttribute("points", `${topLeft.x},${topLeft.y} ${topRight.x},${topRight.y} ${bottom.x},${bottom.y}`);
+triangle.setAttribute("fill", "none");
+triangle.setAttribute("stroke", strokeColor);
+triangle.setAttribute("stroke-width", 5);
+svg.appendChild(triangle);
+
+// Create particle
+const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+particle.setAttribute("cx", bottom.x);
+particle.setAttribute("cy", bottom.y);
+particle.setAttribute("r", particleRadius);
+particle.setAttribute("fill", strokeColor);
+svg.appendChild(particle);
+
+// ========== PHASES ==========
+const phases = [
+  {text:"Inhale", duration:inhaleTime, start:bottom, end:topLeft},
+  {text:"Hold", duration:holdTime, start:topLeft, end:topRight},
+  {text:"Exhale", duration:exhaleTime, start:topRight, end:bottom},
+];
+
+let idx = 0;
+let rounds = 0;
+let totalSeconds = 0;
+
+let vertexFlags = {};
+vertices.forEach((v,i) => vertexFlags[i] = false);
+
+function animatePhase() {
+  const phase = phases[idx];
+  textEl.innerText = phase.text;
+  const startTime = performance.now();
+
+  function step(now) {
+    const t = Math.min((now - startTime)/phase.duration, 1);
+    const cx = phase.start.x + (phase.end.x - phase.start.x) * t;
+    const cy = phase.start.y + (phase.end.y - phase.start.y) * t;
+    particle.setAttribute("cx", cx);
+    particle.setAttribute("cy", cy);
+
+    // Update countdown
+    const secondsLeft = Math.ceil((phase.duration*(1-t))/1000);
+    countdownEl.innerText = `Time left: ${secondsLeft}s`;
+
+    vertices.forEach((v, i) => {
+
+    if(Math.abs(cx - v.x) > tolerance || Math.abs(cy - v.y) > tolerance){
+        vertexFlags[i] = false;
+    }
+
+    else if(!vertexFlags[i]){
+        bellAudio.currentTime = 0;
+        bellAudio.play().catch(e => console.log("Audio play blocked:", e));
+        vertexFlags[i] = true;
+    }
+    });
+
+    if(t < 1) requestAnimationFrame(step);
+    else {
+      idx = (idx + 1) % phases.length;
+      if(idx === 0) rounds++;  // completed a full cycle
+      totalSeconds += phase.duration/1000;
+      roundsEl.innerText = `Rounds: ${rounds}`;
+      minutesEl.innerText = `Total minutes: ${(totalSeconds/60).toFixed(1)}`;
+      vertices.forEach((v,i) => vertexFlags[i] = false);
+
+      animatePhase();
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
+animatePhase();
+</script>
+
+
+"""
+
 # --- Save to single HTML ---
-with open("index.html", "w") as f:
-    f.write("<h1>Triangle Breathing (10, 20, 10)  Dashboard</h1>\n")
+with open("index_test.html", "w") as f:
+    f.write('<h1 style="margin-top:30px;">Triangle Breathing (10, 20, 10)</h1>\n')
+    f.write("""<p style="text-align:center; font-style:italic; color:gray;">
+  Click anywhere to activate sound 🎵</p>""")
+    f.write(triangle_html)
     f.write(motivation_html)
     f.write(tools)
     f.write(fig_minutes.to_html(full_html=False, include_plotlyjs='cdn'))

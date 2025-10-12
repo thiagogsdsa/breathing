@@ -18,3 +18,9 @@ venv/
 *.swp
 *.kate-swp
 
+#test dev
+main_test.py 
+
+#test html 
+index_test.html 
+
