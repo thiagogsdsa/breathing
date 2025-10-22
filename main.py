@@ -1,5 +1,6 @@
 import sqlite3
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 
 # ===============================
@@ -101,15 +102,57 @@ fig_cum_sessions.update_layout(title="Cumulative Sessions", **shared_layout)
 # ===============================
 # Histograms
 # ===============================
-fig_hist_minutes = go.Figure(go.Histogram(
-    x=daily['total_minutes'], nbinsx=20, marker_color='skyblue'
-))
-fig_hist_minutes.update_layout(title="Distribution of Daily Minutes", **shared_layout)
+# --- Histogram of Minutes ---
+# --- Calculate bins using Sturges' formula ---
 
-fig_hist_sessions = go.Figure(go.Histogram(
-    x=daily['sessions'], nbinsx=10, marker_color='lightgreen'
+n_minutes = len(daily['total_minutes'])
+bins_minutes = int(np.ceil(np.log2(n_minutes) + 1))
+
+counts, bins = np.histogram(daily['total_minutes'], bins=bins_minutes)
+bin_centers = 0.5 * (bins[:-1] + bins[1:])
+text_labels = [str(int(v)) if v > 0 else "" for v in counts]
+
+fig_hist_minutes = go.Figure(go.Bar(
+    x=bin_centers,
+    y=counts,
+    text=text_labels,
+    textposition='outside',
+    textfont=dict(size=16, color='#E6EDF3'),
+    marker_color='skyblue'
 ))
-fig_hist_sessions.update_layout(title="Distribution of Daily Sessions", **shared_layout)
+
+fig_hist_minutes.update_layout(
+    title="Distribution of Daily Minutes",
+    showlegend=False,
+    xaxis=dict(title='Minutes', showticklabels=True),
+    yaxis=dict(visible=False),
+    **shared_layout
+)
+
+# --- Sessions ---
+n_sessions = len(daily['sessions'])
+bins_sessions = int(np.ceil(np.log2(n_sessions) + 1))
+
+counts_s, bins_s = np.histogram(daily['sessions'], bins=bins_sessions)
+bin_centers_s = 0.5 * (bins_s[:-1] + bins_s[1:])
+text_labels_s = [str(int(v)) if v > 0 else "" for v in counts_s]
+
+fig_hist_sessions = go.Figure(go.Bar(
+    x=bin_centers_s,
+    y=counts_s,
+    text=text_labels_s,
+    textposition='outside',
+    textfont=dict(size=16, color='#E6EDF3'),
+    marker_color='lightgreen'
+))
+
+fig_hist_sessions.update_layout(
+    title="Distribution of Daily Sessions",
+    showlegend=False,
+    xaxis=dict(title='Sessions', showticklabels=True),
+    yaxis=dict(visible=False),
+    **shared_layout
+)
 
 # ===============================
 # Weekday Aggregation
@@ -121,19 +164,28 @@ weekday_sessions = raw.groupby('weekday')['sessions'].sum().reindex(weekday_orde
 
 fig_weekday_minutes = go.Figure(go.Bar(
     x=weekday_minutes.index, y=weekday_minutes.values,
-    text=weekday_minutes.values, textposition='outside',
+    text=[f"{v:.2f}" for v in weekday_minutes.values],
+    textposition='outside',
     marker_color='skyblue'
 ))
+
+fig_weekday_minutes.update_traces(
+    textfont=dict(size=16, color='white')  
+)
 fig_weekday_minutes.update_layout(title="Breathing Minutes per Day of Week", **shared_layout)
-fig_weekday_minutes.update_yaxes(range=[0, max(weekday_minutes.values)*1.2])
+fig_weekday_minutes.update_yaxes(visible = False, showticklabels=False, showgrid=False, zeroline=False ,range=[0, max(weekday_minutes.values)*1.2])
 
 fig_weekday_sessions = go.Figure(go.Bar(
     x=weekday_sessions.index, y=weekday_sessions.values,
     text=weekday_sessions.values, textposition='outside',
     marker_color='lightgreen'
 ))
+
+fig_weekday_sessions.update_traces(
+    textfont=dict(size=16, color='white')  
+)
 fig_weekday_sessions.update_layout(title="Breathing Sessions per Day of Week", **shared_layout)
-fig_weekday_sessions.update_yaxes(range=[0, max(weekday_sessions.values)*1.2])
+fig_weekday_sessions.update_yaxes(visible = False, showticklabels=False, showgrid=False, zeroline=False , range=[0, max(weekday_sessions.values)*1.2])
 
 # ===============================
 # Stats Table
@@ -360,14 +412,14 @@ with open("journey.html", "w") as f:
   </section>
 """)
 
-    # ====== Grid de gráficos ======
+    # ======  ======
     figs = [
-        (fig_minutes, "Daily Minutes"),
-        (fig_sessions, "Daily Sessions"),
+        (fig_minutes, "Breathing Daily Minutes"),
+        (fig_sessions, "Breathing Daily Sessions"),
         (fig_cum_minutes, "Cumulative Minutes"),
         (fig_cum_sessions, "Cumulative Sessions"),
-        (fig_hist_minutes, "Histogram Minutes"),
-        (fig_hist_sessions, "Histogram Sessions"),
+        (fig_hist_minutes, "Distribution of Daily Minutes"),
+        (fig_hist_sessions, "Distribution of Daily Sessions"),
         (fig_weekday_minutes, "Minutes per Weekday"),
         (fig_weekday_sessions, "Sessions per Weekday"),
         (fig_streak, "Practice Streak")
@@ -383,8 +435,9 @@ with open("journey.html", "w") as f:
         font=dict(color="#E6EDF3", family="Inter, Segoe UI"),
         title_font=dict(size=18, color="#A5B4FC"),
         xaxis=dict(showgrid=False, zeroline=False, fixedrange=True),
-        yaxis=dict(showgrid=False, gridcolor="rgba(255,255,255,0.1)", fixedrange=True),
-        margin=dict(l=50, r=30, t=60, b=60)
+        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)", fixedrange=True),
+        margin=dict(l=50, r=30, t=60, b=60), 
+        title = None
     )
 
     for fig, title in figs:
