@@ -21,6 +21,9 @@ venv/
 #test dev
 main_test.py 
 
+main.py 
+
+
 #test html 
 index_test.html 
 

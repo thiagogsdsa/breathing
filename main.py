@@ -1,143 +1,143 @@
 import sqlite3
-
 import pandas as pd
 import plotly.graph_objects as go
 
-# --- Load data ---
+# ===============================
+# Load Data
+# ===============================
 conn = sqlite3.connect("breathing_log.db")
 raw = pd.read_sql("SELECT * FROM daily_breathing;", conn)
 conn.close()
-
-# --- Aggregate per day ---
 raw['date'] = pd.to_datetime(raw['date'])
 
-# --- Fill missing days with 0 ---
-
+# ===============================
+# Aggregate per day
+# ===============================
 daily = raw.groupby(raw['date'].dt.date).agg(
     total_minutes=('total_minutes', 'sum'),
     sessions=('sessions', 'sum')
 ).reset_index()
 
+# Fill missing days with zeros
 all_dates = pd.date_range(daily['date'].min(), daily['date'].max())
-daily = daily.set_index('date').reindex(
-    all_dates, fill_value=0).rename_axis('date').reset_index()
-
+daily = daily.set_index('date').reindex(all_dates, fill_value=0)\
+             .rename_axis('date').reset_index()
 daily['date_str'] = daily['date'].astype(str)
 
-# --- Compute cumulative sums ---
+# Cumulative sums
 daily['cumulative_minutes'] = daily['total_minutes'].cumsum()
 daily['cumulative_sessions'] = daily['sessions'].cumsum()
 
-# --- Moving average (3-day window) ---
+# Moving average (3-day window)
 daily['minutes_ma'] = daily['total_minutes'].rolling(3, min_periods=1).mean()
 daily['sessions_ma'] = daily['sessions'].rolling(3, min_periods=1).mean()
 
-# --- Stats ---
+# ===============================
+# Basic Stats
+# ===============================
 mean_minutes = daily['total_minutes'].mean()
 median_minutes = daily['total_minutes'].median()
 mean_sessions = daily['sessions'].mean()
 median_sessions = daily['sessions'].median()
 
-# --- Create figures ---
-# Daily minutes + MA
+# ===============================
+# Shared Layout
+# ===============================
+shared_layout = dict(
+    template="plotly_dark",
+    paper_bgcolor="rgba(0,0,0,0)",  
+    plot_bgcolor="rgba(0,0,0,0)",    
+    font=dict(color="#E6EDF3", family="Helvetica Neue, Segoe UI"),
+    title_font=dict(size=18, color="#9CD1FF"),
+    margin=dict(l=60, r=30, t=60, b=60)
+)
+# ===============================
+# Daily Minutes & MA
+# ===============================
 fig_minutes = go.Figure()
 fig_minutes.add_trace(go.Scatter(
-    x=daily['date_str'],
-    y=daily['total_minutes'],
-    mode='lines+markers',
-    name='Daily Minutes',
+    x=daily['date_str'], y=daily['total_minutes'],
+    mode='lines+markers', name='Daily Minutes',
     line=dict(color='skyblue')
 ))
 fig_minutes.add_trace(go.Scatter(
-    x=daily['date_str'],
-    y=daily['minutes_ma'],
-    mode='lines',
-    name='3-Day MA',
+    x=daily['date_str'], y=daily['minutes_ma'],
+    mode='lines', name='3-Day MA',
     line=dict(color='darkblue', dash='dash')
 ))
-fig_minutes.update_layout(title="Daily Breathing Minutes",
-                          xaxis_title="Date", yaxis_title="Minutes")
+fig_minutes.update_layout(title="Daily Breathing Minutes", **shared_layout)
 
-# Daily sessions + MA
+# Daily Sessions & MA
 fig_sessions = go.Figure()
 fig_sessions.add_trace(go.Scatter(
-    x=daily['date_str'],
-    y=daily['sessions'],
-    mode='lines+markers',
-    name='Daily Sessions',
+    x=daily['date_str'], y=daily['sessions'],
+    mode='lines+markers', name='Daily Sessions',
     line=dict(color='lightgreen')
 ))
 fig_sessions.add_trace(go.Scatter(
-    x=daily['date_str'],
-    y=daily['sessions_ma'],
-    mode='lines',
-    name='3-Day MA',
+    x=daily['date_str'], y=daily['sessions_ma'],
+    mode='lines', name='3-Day MA',
     line=dict(color='green', dash='dash')
 ))
-fig_sessions.update_layout(
-    title="Daily Breathing Sessions", xaxis_title="Date", yaxis_title="Sessions")
+fig_sessions.update_layout(title="Daily Breathing Sessions", **shared_layout)
 
-# Cumulative figures
-fig_cum_minutes = go.Figure(go.Scatter(x=daily['date_str'], y=daily['cumulative_minutes'],
-                                       mode='lines+markers', name='Cumulative Minutes', line=dict(color='darkblue')))
-fig_cum_minutes.update_layout(
-    title="Cumulative Minutes", xaxis_title="Date", yaxis_title="Minutes")
+# ===============================
+# Cumulative Figures
+# ===============================
+fig_cum_minutes = go.Figure(go.Scatter(
+    x=daily['date_str'], y=daily['cumulative_minutes'],
+    mode='lines+markers', name='Cumulative Minutes',
+    line=dict(color='darkblue')
+))
+fig_cum_minutes.update_layout(title="Cumulative Minutes", **shared_layout)
 
-fig_cum_sessions = go.Figure(go.Scatter(x=daily['date_str'], y=daily['cumulative_sessions'],
-                                        mode='lines+markers', name='Cumulative Sessions', line=dict(color='green')))
-fig_cum_sessions.update_layout(
-    title="Cumulative Sessions", xaxis_title="Date", yaxis_title="Sessions")
+fig_cum_sessions = go.Figure(go.Scatter(
+    x=daily['date_str'], y=daily['cumulative_sessions'],
+    mode='lines+markers', name='Cumulative Sessions',
+    line=dict(color='green')
+))
+fig_cum_sessions.update_layout(title="Cumulative Sessions", **shared_layout)
 
+# ===============================
 # Histograms
+# ===============================
 fig_hist_minutes = go.Figure(go.Histogram(
-    x=daily['total_minutes'], nbinsx=20, marker_color='skyblue'))
-fig_hist_minutes.update_layout(
-    title="Distribution of Daily Minutes", xaxis_title="Minutes", yaxis_title="Count")
+    x=daily['total_minutes'], nbinsx=20, marker_color='skyblue'
+))
+fig_hist_minutes.update_layout(title="Distribution of Daily Minutes", **shared_layout)
 
 fig_hist_sessions = go.Figure(go.Histogram(
-    x=daily['sessions'], nbinsx=10, marker_color='lightgreen'))
-fig_hist_sessions.update_layout(
-    title="Distribution of Daily Sessions", xaxis_title="Sessions", yaxis_title="Count")
+    x=daily['sessions'], nbinsx=10, marker_color='lightgreen'
+))
+fig_hist_sessions.update_layout(title="Distribution of Daily Sessions", **shared_layout)
 
-# Distribution/week day
-weekday_order = ['Monday', 'Tuesday', 'Wednesday',
-                 'Thursday', 'Friday', 'Saturday', 'Sunday']
+# ===============================
+# Weekday Aggregation
+# ===============================
+weekday_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 
-# Agrupa minutos e sessões por weekday
-weekday_minutes = raw.groupby('weekday')['total_minutes'].sum().reindex(
-    weekday_order, fill_value=0)
-weekday_sessions = raw.groupby('weekday')['sessions'].sum().reindex(
-    weekday_order, fill_value=0)
+weekday_minutes = raw.groupby('weekday')['total_minutes'].sum().reindex(weekday_order, fill_value=0)
+weekday_sessions = raw.groupby('weekday')['sessions'].sum().reindex(weekday_order, fill_value=0)
 
 fig_weekday_minutes = go.Figure(go.Bar(
-    x=weekday_minutes.index,
-    y=weekday_minutes.values,
-    text=weekday_minutes.values,
-    textposition='outside',
+    x=weekday_minutes.index, y=weekday_minutes.values,
+    text=weekday_minutes.values, textposition='outside',
     marker_color='skyblue'
 ))
-fig_weekday_minutes.update_layout(
-    title="Breathing Minutes per Day of Week",
-    xaxis_title="Day of Week",
-    yaxis_title="Total Minutes",
-    yaxis=dict(range=[0, max(weekday_minutes.values)*1.2])
-)
+fig_weekday_minutes.update_layout(title="Breathing Minutes per Day of Week", **shared_layout)
+fig_weekday_minutes.update_yaxes(range=[0, max(weekday_minutes.values)*1.2])
 
 fig_weekday_sessions = go.Figure(go.Bar(
-    x=weekday_sessions.index,
-    y=weekday_sessions.values,
-    text=weekday_sessions.values,
-    textposition='outside',
+    x=weekday_sessions.index, y=weekday_sessions.values,
+    text=weekday_sessions.values, textposition='outside',
     marker_color='lightgreen'
 ))
-fig_weekday_sessions.update_layout(
-    title="Breathing Sessions per Day of Week",
-    xaxis_title="Day of Week",
-    yaxis_title="Total Sessions",
-    yaxis=dict(range=[0, max(weekday_sessions.values)*1.2])
-)
+fig_weekday_sessions.update_layout(title="Breathing Sessions per Day of Week", **shared_layout)
+fig_weekday_sessions.update_yaxes(range=[0, max(weekday_sessions.values)*1.2])
 
-# Stats table
+# ===============================
+# Stats Table
+# ===============================
 table = go.Figure(data=[go.Table(
     header=dict(values=["Metric", "Minutes", "Sessions"],
                 fill_color='paleturquoise', align='left'),
@@ -145,89 +145,70 @@ table = go.Figure(data=[go.Table(
         ["Mean", "Median"],
         [f"{mean_minutes:.2f}", f"{median_minutes:.2f}"],
         [f"{mean_sessions:.2f}", f"{median_sessions:.2f}"]
-    ], fill_color='lavender', align='left'))
-])
+    ], fill_color='lavender', align='left')
+)])
+table.update_layout(**shared_layout)
 
-shared_layout = dict(
-    template="plotly_dark",
-    paper_bgcolor="rgba(18, 12, 35, 1)",
-    plot_bgcolor="rgba(18, 12, 35, 1)",
-    font=dict(color="#E6EDF3", family="Helvetica Neue, Segoe UI"),
-    title_font=dict(size=18, color="#9CD1FF"),
-    xaxis=dict(showgrid=False, zeroline=False, fixedrange=True),
-    yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)",
-               fixedrange=True),
-    margin=dict(l=60, r=30, t=60, b=60)
+# ===============================
+# Dual-axis chart: Minutes & Sessions
+# ===============================
+fig_minutes_sessions = go.Figure()
+fig_minutes_sessions.add_trace(go.Scatter(
+    x=daily['date_str'], y=daily['total_minutes'],
+    mode='lines+markers', name='Minutes', line=dict(color='skyblue')
+))
+fig_minutes_sessions.add_trace(go.Scatter(
+    x=daily['date_str'], y=daily['sessions'],
+    mode='lines+markers', name='Sessions', line=dict(color='lightgreen'),
+    yaxis='y2'
+))
+fig_minutes_sessions.update_layout(
+    title="Daily Breathing: Minutes & Sessions",
+    xaxis=dict(title="Date", showgrid=False, zeroline=False),
+    yaxis=dict(title="Minutes", color='skyblue', showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
+    yaxis2=dict(title="Sessions", overlaying='y', side='right', color='lightgreen', showgrid=False),
+    height=500,
+    **shared_layout
 )
 
-for fig in [
-    fig_minutes, fig_sessions, fig_cum_minutes, fig_cum_sessions,
-    fig_hist_minutes, fig_hist_sessions, fig_weekday_minutes, fig_weekday_sessions
-]:
-    fig.update_layout(**shared_layout)
+# ===============================
+# Streak Computation
+# ===============================
+streaks = []
+current_streak = 0
+for minutes in daily['total_minutes']:
+    if minutes > 0:
+        current_streak += 1
+    else:
+        current_streak = 0
+    streaks.append(current_streak)
+daily['streak'] = streaks
+
+fig_streak = go.Figure()
+fig_streak.add_trace(go.Scatter(
+    x=daily['date_str'], y=daily['streak'],
+    mode='lines+markers', name='Streak (days)',
+    line=dict(color='orange', width=3), marker=dict(size=6)
+))
+fig_streak.update_layout(title="Current Streak of Daily Practice", **shared_layout)
+
+# ===============================
+# Participation KPI
+# ===============================
+days_practiced = (daily['total_minutes'] > 0).sum()
+total_days = len(daily)
+participation_pct = (days_practiced / total_days) * 100
 
 
-motivation_html = """
-<div id="motivation" style="margin: 20px 0; font-family: Arial, sans-serif;">
-
-    <h2 style="color:#00796B;">Motivation</h2>
-    <p>
-        According to scientific studies, working long hours without sufficient rest increases the risk of burnout, lowers productivity, and harms mental health. 
-        Practices involving controlled breathing and mindfulness have been found beneficial for stress reduction, improving mood, mitigating fatigue, and enhancing overall well-being.
-    </p>
-
-    <h3 style="color:#004D40;">Evidence from Research</h3>
-    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width:100%; margin-bottom:20px;">
-        <tr style="background-color: #B2DFDB; font-weight: bold;">
-            <td style="width:70%;">Finding</td>
-            <td style="width:30%;">Reference</td>
-        </tr>
-        <tr>
-            <td>Nurses who practiced daily breathing-meditation for 8 weeks showed reduced negative emotions and job burnout, and improved attention.</td>
-            <td><a href="https://pubmed.ncbi.nlm.nih.gov/38814605/" target="_blank">PubMed</a></td>
-        </tr>
-        <tr>
-            <td>Diaphragmatic breathing (deep belly breathing) is effective in reducing physiological and psychological stress in adults.</td>
-            <td><a href="https://pubmed.ncbi.nlm.nih.gov/31436595/" target="_blank">PubMed</a></td>
-        </tr>
-        <tr>
-            <td>Brief structured breathwork exercises (5 minutes daily) improved mood and reduced anxiety more than mindfulness meditation in some comparisons.</td>
-            <td><a href="https://pubmed.ncbi.nlm.nih.gov/36630953/" target="_blank">PubMed</a></td>
-        </tr>
-        <tr>
-            <td>In heart failure patients, daily yoga breathing exercise improved self-care, reduced fatigue and dyspnea.</td>
-            <td><a href="https://pubmed.ncbi.nlm.nih.gov/39499816/" target="_blank">PubMed</a></td>
-        </tr>
-    </table>
-
-    <h3 style="color:#004D40;">System Goals</h3>
-    <ul>
-        <li>Take regular guided breathing breaks using <code>breathing.sh</code></li>
-        <li>Log readiness and track completed vs skipped sessions</li>
-        <li>Visualize progress (minutes, frequency) over time with interactive dashboards</li>
-    </ul>
-
-    <h3 style="color:#004D40;">Hypothesis / Expected Benefits</h3>
-    <p>
-        Regular breathing practice is expected to:
-    </p>
-    <ul>
-        <li>Reduce mental fatigue and improve mood</li>
-        <li>Help prevent burnout</li>
-        <li>Increase focus and productivity</li>
-        <li>Support better sleep, stress resilience, and overall routine</li>
-    </ul>
-
-    <h3 style="color:#004D40;">Demonstration</h3>
-    <p>Here is a short video demonstrating how my system works:</p>
-    
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/DwT-EoZOaeI?si=OvzWF930pGPIzwmH&amp;controls=0" 
-            title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
-
-</div>
-"""
+# tools = """   
+#     <h3 style="color:#004D40;">Tools</h3>
+#     <ul>
+#     <li><strong>Python</strong> — data processing, visualization (Plotly)</li>
+#     <li><strong>SQLite</strong> — lightweight database for logging sessions</li>
+#     <li><strong>Bash</strong> — automation and terminal-based prompts</li>
+#     <li><strong>HTML/CSS</strong> — dashboard layout</li>
+#     </ul> 
+#     """
 
 note_text = """
 <p><strong>Note:</strong> I created this system mainly because I don't want the hassle of logging my sessions in a spreadsheet. 
@@ -237,175 +218,192 @@ I also intend to maintain a personal notebook about my life, projects, feelings,
 After many months of practice, it will be possible to perform textual analysis, sentiment analysis, and evaluate achievements based on this routine.</p>
 """
 
-tools = """   
-    <h3 style="color:#004D40;">Tools</h3>
-    <ul>
-    <li><strong>Python</strong> — data processing, visualization (Plotly)</li>
-    <li><strong>SQLite</strong> — lightweight database for logging sessions</li>
-    <li><strong>Bash</strong> — automation and terminal-based prompts</li>
-    <li><strong>HTML/CSS</strong> — dashboard layout</li>
-    </ul> 
-    """
+# --- Save to single HTML dashboard ---
+# Calcule KPIs
+days_practiced = (daily['total_minutes'] > 0).sum()
+total_days = len(daily)
+participation_pct = days_practiced / total_days * 100
 
-triangle_html = """
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;margin:40px 0;">
-  <svg id="triangleSVG" width="500" height="400" viewBox="0 0 500 400">
-    <!-- Triangle and particle will be created via JS -->
-  </svg>
-  <h3 id="breathText">Breathe...</h3>
-  <div id="countdown">Time left: 0s</div>
-  <div id="rounds">Rounds: 0</div>
-  <div id="minutes">Total minutes: 0</div>
-</div>
-
-<audio id="bellAudio">
-  <source src="tibetan_bell.mp3" type="audio/mpeg">
-  Your browser does not support the audio element.
-</audio>
-
-<audio id="backgroundAudio" loop>
-  <source src="meditation_music.mp3" type="audio/mpeg">
-  Your browser does not support the audio element.
-</audio>
-
-<script>
-const svg = document.getElementById("triangleSVG");
-const textEl = document.getElementById("breathText");
-const countdownEl = document.getElementById("countdown");
-const roundsEl = document.getElementById("rounds");
-const minutesEl = document.getElementById("minutes");
-const bellAudio = document.getElementById("bellAudio");
-const bgAudio = document.getElementById("backgroundAudio");
-document.addEventListener("click", () => {
-    if(bgAudio.paused){
-        bgAudio.volume = 0.5;
-        bgAudio.play().catch(e => console.log("Audio play blocked:", e));
+with open("journey.html", "w") as f:
+    f.write("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Triangle Breathing Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(145deg, #0f172a, #1e1b4b);
+      color: #E6EDF3;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
     }
-}, {once: true});
+    h1, h2, h3 {
+      color: #A5B4FC;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+""")
 
-
-// ========== PARAMETERS ==========
-const baseWidth = 300;
-const height = 250;
-const particleRadius = 15;
-const strokeColor = "#00d4ff";
-
-const inhaleTime = 10000;
-const holdTime = 20000;
-const exhaleTime = 10000;
-
-const playBellAtVertex = true;
-
-// ========== CALCULATE POINTS ==========
-const centerX = 250;
-const topLeft = {x: centerX - baseWidth/2, y:100};
-const topRight = {x: centerX + baseWidth/2, y:100};
-const bottom = {x: centerX, y: 100 + height};
-
-const vertices = [bottom, topLeft, topRight];
-const tolerance = 2
-
-// Create triangle
-const triangle = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-triangle.setAttribute("points", `${topLeft.x},${topLeft.y} ${topRight.x},${topRight.y} ${bottom.x},${bottom.y}`);
-triangle.setAttribute("fill", "none");
-triangle.setAttribute("stroke", strokeColor);
-triangle.setAttribute("stroke-width", 5);
-svg.appendChild(triangle);
-
-// Create particle
-const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-particle.setAttribute("cx", bottom.x);
-particle.setAttribute("cy", bottom.y);
-particle.setAttribute("r", particleRadius);
-particle.setAttribute("fill", strokeColor);
-svg.appendChild(particle);
-
-// ========== PHASES ==========
-const phases = [
-  {text:"Inhale", duration:inhaleTime, start:bottom, end:topLeft},
-  {text:"Hold", duration:holdTime, start:topLeft, end:topRight},
-  {text:"Exhale", duration:exhaleTime, start:topRight, end:bottom},
-];
-
-let idx = 0;
-let rounds = 0;
-let totalSeconds = 0;
-
-let vertexFlags = {};
-vertices.forEach((v,i) => vertexFlags[i] = false);
-
-function animatePhase() {
-  const phase = phases[idx];
-  textEl.innerText = phase.text;
-  const startTime = performance.now();
-
-  function step(now) {
-    const t = Math.min((now - startTime)/phase.duration, 1);
-    const cx = phase.start.x + (phase.end.x - phase.start.x) * t;
-    const cy = phase.start.y + (phase.end.y - phase.start.y) * t;
-    particle.setAttribute("cx", cx);
-    particle.setAttribute("cy", cy);
-
-    // Update countdown
-    const secondsLeft = Math.ceil((phase.duration*(1-t))/1000);
-    countdownEl.innerText = `Time left: ${secondsLeft}s`;
-
-    vertices.forEach((v, i) => {
-
-    if(Math.abs(cx - v.x) > tolerance || Math.abs(cy - v.y) > tolerance){
-        vertexFlags[i] = false;
+with open("journey.html", "w") as f:
+    f.write("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Triangle Breathing Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* ------------------------------------------- */
+    /* NOVO CSS: Transferido de 'evidence.html' */
+    /* ------------------------------------------- */
+    body {
+      margin: 0;
+      min-height: 100vh; 
+      /* Fundo de espaço profundo com gradiente */
+      background: radial-gradient(circle at center, #1f1842 0%, #0d0a1f 100%);
+      font-family: 'Poppins', sans-serif;
+      color: #E6EDF3;
+      /* Permite rolagem vertical do conteúdo */
+      overflow-y: scroll; 
     }
 
-    else if(!vertexFlags[i]){
-        bellAudio.currentTime = 0;
-        bellAudio.play().catch(e => console.log("Audio play blocked:", e));
-        vertexFlags[i] = true;
+    /* ESTILOS DAS PARTÍCULAS */
+    .particle {
+      position: absolute;
+      background: #FFFFFF; 
+      border-radius: 50%;
+      opacity: 0.7; 
+      animation: float 15s linear infinite, twinkle 2s alternate infinite; 
     }
-    });
 
-    if(t < 1) requestAnimationFrame(step);
-    else {
-      idx = (idx + 1) % phases.length;
-      if(idx === 0) rounds++;  // completed a full cycle
-      totalSeconds += phase.duration/1000;
-      roundsEl.innerText = `Rounds: ${rounds}`;
-      minutesEl.innerText = `Total minutes: ${(totalSeconds/60).toFixed(1)}`;
-      vertices.forEach((v,i) => vertexFlags[i] = false);
-
-      animatePhase();
+    @keyframes float {
+      0% { transform: translateY(0) scale(0.9); opacity: 0.7; }
+      50% { transform: translateY(-50px) scale(1.1); opacity: 1; }
+      100% { transform: translateY(0) scale(0.9); opacity: 0.7; }
     }
-  }
+    
+    @keyframes twinkle {
+      0% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    
+    /* ESTILOS DOS CARDS DO DASHBOARD (Ajustados ao novo fundo) */
+    h1, h2, h3 {
+      color: #A5B4FC;
+    }
+    .card {
+      /* Fundo semi-transparente para o universo */
+      background: rgba(24, 18, 50, 0.9); 
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+      transition: transform 0.2s ease;
+      overflow: hidden; /* Mantém a correção para gráficos */
+    }
+    .card:hover {
+      transform: translateY(-3px);
+    }
+  </style>
+</head>
+<body class="min-h-screen"> 
+""")
+    f.write("""
+<div class="particle" style="top:5%; left:90%; width:1px; height:1px; animation-delay:0s;"></div>
+<div class="particle" style="top:95%; left:10%; width:2px; height:2px; animation-delay:1.5s;"></div>
+<div class="particle" style="top:40%; left:30%; width:1px; height:1px; animation-delay:3s;"></div>
+""")
 
-  requestAnimationFrame(step);
-}
+   
+    f.write("""
+<header class="text-center py-10">
+    <h1 class="text-4xl font-bold mb-2">My Breathing Journey</h1>
+</header>
 
-animatePhase();
-</script>
+""")
 
 
-"""
+    # ====== KPI Panel ======
+    f.write(f"""
+  <section class="flex flex-wrap justify-center gap-6 px-6 mb-12">
+    <div class="card w-44 text-center">
+      <h2 class="text-lg font-semibold">Mean Minutes</h2>
+      <p class="text-3xl font-bold mt-2">{mean_minutes:.1f}</p>
+    </div>
+    <div class="card w-44 text-center">
+      <h2 class="text-lg font-semibold">Mean Sessions</h2>
+      <p class="text-3xl font-bold mt-2">{mean_sessions:.1f}</p>
+    </div>
+    <div class="card w-44 text-center">
+      <h2 class="text-lg font-semibold">Days Practiced</h2>
+      <p class="text-3xl font-bold mt-2">{days_practiced}</p>
+    </div>
+    <div class="card w-44 text-center">
+      <h2 class="text-lg font-semibold">Participation %</h2>
+      <p class="text-3xl font-bold mt-2">{participation_pct:.1f}%</p>
+    </div>
+  </section>
+""")
 
-# --- Save to single HTML ---
-with open("index.html", "w") as f:
-    f.write('<h1 style="margin-top:30px;">Triangle Breathing (10, 20, 10)</h1>\n')
-    f.write("""<p style="text-align:center; font-style:italic; color:gray;">
-  Click anywhere to activate sound 🎵</p>""")
-    f.write(triangle_html)
-    f.write(motivation_html)
-    f.write(tools)
-    f.write('<h1 style="margin-top:30px;">My Breathing Practice Journey </h1>\n')
-    f.write(fig_minutes.to_html(full_html=False, include_plotlyjs='cdn'))
-    f.write(fig_sessions.to_html(full_html=False, include_plotlyjs=False))
-    f.write(fig_cum_minutes.to_html(full_html=False, include_plotlyjs=False))
-    f.write(fig_cum_sessions.to_html(full_html=False, include_plotlyjs=False))
-    f.write(fig_hist_minutes.to_html(full_html=False, include_plotlyjs=False))
-    f.write(fig_hist_sessions.to_html(full_html=False, include_plotlyjs=False))
-    f.write(fig_weekday_minutes.to_html(
-        full_html=False, include_plotlyjs=False))
-    f.write(fig_weekday_sessions.to_html(
-        full_html=False, include_plotlyjs=False))
-    f.write(table.to_html(full_html=False, include_plotlyjs=False))
-    f.write(note_text)
+    # ====== Grid de gráficos ======
+    figs = [
+        (fig_minutes, "Daily Minutes"),
+        (fig_sessions, "Daily Sessions"),
+        (fig_cum_minutes, "Cumulative Minutes"),
+        (fig_cum_sessions, "Cumulative Sessions"),
+        (fig_hist_minutes, "Histogram Minutes"),
+        (fig_hist_sessions, "Histogram Sessions"),
+        (fig_weekday_minutes, "Minutes per Weekday"),
+        (fig_weekday_sessions, "Sessions per Weekday"),
+        (fig_streak, "Practice Streak")
+    ]
 
-print("index.html generated successfully with aggregated daily data!")
+    f.write('<section class="grid grid-cols-1 md:grid-cols-2 gap-10 px-8 mb-16">\n')
+    first = True
+
+    shared_layout = dict(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)", 
+        plot_bgcolor="rgba(0,0,0,0)", 
+        font=dict(color="#E6EDF3", family="Inter, Segoe UI"),
+        title_font=dict(size=18, color="#A5B4FC"),
+        xaxis=dict(showgrid=False, zeroline=False, fixedrange=True),
+        yaxis=dict(showgrid=False, gridcolor="rgba(255,255,255,0.1)", fixedrange=True),
+        margin=dict(l=50, r=30, t=60, b=60)
+    )
+
+    for fig, title in figs:
+        fig.update_layout(height=480, **shared_layout)
+        f.write('<div class="card">\n')
+        f.write(f'<h3 class="text-center text-xl font-semibold mb-4">{title}</h3>\n')
+        f.write(fig.to_html(full_html=False, include_plotlyjs="cdn" if first else False))
+        f.write('</div>\n')
+        first = False
+
+    f.write('</section>\n')
+
+    # ====== Table & Notes ======
+    f.write(f"""
+  <footer class="text-center text-gray-400 text-sm py-6 border-t border-gray-700 mt-auto">
+    {note_text}
+  </footer>
+</body>
+</html>
+""")
+
+print( " html generated successfully with Calm Flat Layout + Motivation + Tools + KPIs + Charts + Notes!")

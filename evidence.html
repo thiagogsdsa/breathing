@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidences | Breathing System</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    background: radial-gradient(circle at center, #1f1842 0%, #0d0a1f 100%);
+    font-family: 'Poppins', sans-serif;
+    color: #E6EDF3;
+  }
+
+  /* Content container */
+  .content-container {
+    width: 100%;
+    max-width: 700px;
+    padding: 20px;
+    box-sizing: border-box;
+    flex-grow: 1;
+    padding-top: 40px;
+  }
+
+  /* Particles */
+  .particle {
+    position: absolute;
+    background: #FFFFFF; 
+    border-radius: 50%;
+    opacity: 0.7; 
+    animation: float 15s linear infinite, twinkle 2s alternate infinite; 
+  }
+
+  @keyframes float {
+    0% { transform: translateY(0) scale(0.9); opacity: 0.7; }
+    50% { transform: translateY(-50px) scale(1.1); opacity: 1; }
+    100% { transform: translateY(0) scale(0.9); opacity: 0.7; }
+  }
+  
+  @keyframes twinkle {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+
+  /* Tailwind-style classes */
+  .bg-\[\#181232CC\] { background-color: rgba(24, 18, 50, 0.8); }
+  .text-\[\#9CD1FF\] { color: #9CD1FF; }
+  .text-\[\#E6EDF3\] { color: #E6EDF3; }
+  .text-\[\#4FC3F7\] { color: #4FC3F7; }
+  .p-6 { padding: 1.5rem; }
+  .rounded-xl { border-radius: 0.75rem; }
+  .mb-6 { margin-bottom: 1.5rem; }
+  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
+  .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+  .font-semibold { font-weight: 600; }
+  .mb-2 { margin-bottom: 0.5rem; }
+  .leading-relaxed { line-height: 1.625; }
+  .overflow-x-auto { overflow-x: auto; }
+  .w-full { width: 100%; }
+  .text-left { text-align: left; }
+  .p-2 { padding: 0.5rem; }
+  .border-b { border-bottom-width: 1px; }
+  .border-white\/20 { border-color: rgba(255,255,255,0.2); }
+  .font-bold { font-weight: 700; }
+  .bg-white\/5 { background-color: rgba(255,255,255,0.05); }
+  .list-disc { list-style-type: disc; }
+  .list-inside { list-style-position: inside; }
+  .text-center { text-align: center; }
+  .mx-auto { margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<!-- Particles -->
+<div class="particle" style="top:5%; left:90%; width:1px; height:1px; animation-delay:0s;"></div>
+<div class="particle" style="top:95%; left:10%; width:2px; height:2px; animation-delay:1.5s;"></div>
+<div class="particle" style="top:40%; left:30%; width:1px; height:1px; animation-delay:3s;"></div>
+
+<div class="content-container">
+
+    <!-- Motivation Card -->
+    <div class="bg-[#181232CC] p-6 rounded-xl mb-6 shadow-lg">
+        <h2 class="text-[#9CD1FF] text-xl font-semibold mb-2">Why Focus on Breathing?</h2>
+        <p class="text-[#E6EDF3] leading-relaxed">
+            According to scientific studies, working long hours without sufficient rest increases the risk of burnout, lowers productivity, and harms mental health. 
+            Practices involving controlled breathing and mindfulness have been found beneficial for stress reduction, improving mood, mitigating fatigue, and enhancing overall well-being.
+        </p>
+    </div>
+
+    <!-- Evidence from Research Card -->
+    <div class="bg-[#181232CC] p-6 rounded-xl mb-6 shadow-lg overflow-x-auto">
+        <h2 class="text-[#9CD1FF] text-xl font-semibold mb-2">Evidence from Research</h2>
+        <table class="w-full text-[#E6EDF3] border-collapse">
+            <thead>
+                <tr class="font-bold border-b border-white/20">
+                    <th class="w-2/3 text-left p-2">Finding</th>
+                    <th class="w-1/3 text-left p-2">Reference</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="p-2">Nurses who practiced daily breathing-meditation for 8 weeks showed reduced negative emotions and job burnout, and improved attention.</td>
+                    <td class="p-2"><a href="https://pubmed.ncbi.nlm.nih.gov/38814605/" target="_blank" class="text-[#4FC3F7]">PubMed</a></td>
+                </tr>
+                <tr class="bg-white/5">
+                    <td class="p-2">Diaphragmatic breathing (deep belly breathing) is effective in reducing physiological and psychological stress in adults.</td>
+                    <td class="p-2"><a href="https://pubmed.ncbi.nlm.nih.gov/31436595/" target="_blank" class="text-[#4FC3F7]">PubMed</a></td>
+                </tr>
+                <tr>
+                    <td class="p-2">Brief structured breathwork exercises (5 minutes daily) improved mood and reduced anxiety more than mindfulness meditation in some comparisons.</td>
+                    <td class="p-2"><a href="https://pubmed.ncbi.nlm.nih.gov/36630953/" target="_blank" class="text-[#4FC3F7]">PubMed</a></td>
+                </tr>
+                <tr class="bg-white/5">
+                    <td class="p-2">In heart failure patients, daily yoga breathing exercise improved self-care, reduced fatigue and dyspnea.</td>
+                    <td class="p-2"><a href="https://pubmed.ncbi.nlm.nih.gov/39499816/" target="_blank" class="text-[#4FC3F7]">PubMed</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- System Goals Card -->
+    <div class="bg-[#181232CC] p-6 rounded-xl mb-6 shadow-lg">
+        <h2 class="text-[#9CD1FF] text-xl font-semibold mb-2">System Goals</h2>
+        <ul class="list-disc list-inside text-[#E6EDF3]">
+            <li>Take regular guided breathing breaks using <code>breathing.sh</code></li>
+            <li>Log readiness and track completed vs skipped sessions</li>
+            <li>Visualize progress (minutes, frequency) over time with interactive dashboards</li>
+        </ul>
+    </div>
+
+    <!-- Hypothesis / Expected Benefits Card -->
+    <div class="bg-[#181232CC] p-6 rounded-xl mb-6 shadow-lg">
+        <h2 class="text-[#9CD1FF] text-xl font-semibold mb-2">Hypothesis / Expected Benefits</h2>
+        <ul class="list-disc list-inside text-[#E6EDF3]">
+            <li>Reduce mental fatigue and improve mood</li>
+            <li>Help prevent burnout</li>
+            <li>Increase focus and productivity</li>
+            <li>Support better sleep, stress resilience, and overall routine</li>
+        </ul>
+    </div>
+
+    <!-- Demonstration Video Card -->
+    <div class="bg-[#181232CC] p-6 rounded-xl mb-6 shadow-lg text-center">
+        <h2 class="text-[#9CD1FF] text-xl font-semibold mb-2">Demonstration</h2>
+        <p class="text-[#E6EDF3] mb-4">Here is a short video demonstrating how my system works:</p>
+        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+            <iframe 
+                src="https://www.youtube.com/embed/DwT-EoZOaeI?si=OvzWF930pGPIzwmH&amp;controls=0" 
+                title="YouTube video player" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                referrerpolicy="strict-origin-when-cross-origin" 
+                allowfullscreen
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                class="mx-auto rounded-lg"
+            ></iframe>
+        </div>
+    </div>
+
+</div> 
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Triangle Breathing (10, 20, 10)</title>
+
+  <!-- Plotly -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+  <style>
+    /* ----------------------------- */
+    /* General Body Styles */
+    /* ----------------------------- */
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at center, #1f1842 0%, #0d0a1f 100%);
+      font-family: 'Poppins', sans-serif;
+      color: #E6EDF3;
+      overflow-y: scroll;
+    }
+
+    /* ----------------------------- */
+    /* Particle Styles */
+    /* ----------------------------- */
+    .particle {
+      position: absolute;
+      background: #FFFFFF;
+      border-radius: 50%;
+      opacity: 0.7;
+      animation: float 15s linear infinite, twinkle 2s alternate infinite;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(0) scale(0.9); opacity: 0.7; }
+      50%  { transform: translateY(-50px) scale(1.1); opacity: 1; }
+      100% { transform: translateY(0) scale(0.9); opacity: 0.7; }
+    }
+
+    @keyframes twinkle {
+      0%   { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    /* ----------------------------- */
+    /* Card / Header Styles */
+    /* ----------------------------- */
+    h1, h2, h3 {
+      color: #A5B4FC;
+    }
+
+    .card {
+      background: rgba(24, 18, 50, 0.9);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+      transition: transform 0.2s ease;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <!-- Particles -->
+  <div class="particle" style="top:5%; left:90%; width:1px; height:1px; animation-delay:0s;"></div>
+  <div class="particle" style="top:95%; left:10%; width:2px; height:2px; animation-delay:1.5s;"></div>
+  <div class="particle" style="top:40%; left:30%; width:1px; height:1px; animation-delay:3s;"></div>
+
+  <!-- Header -->
+  <header class="text-center py-10">
+    <h1 class="text-4xl font-bold mb-2">Triangle Breathing (10, 20, 10)</h1>
+    <p style="color:#E6EDF3; font-style:italic; font-size:18px; margin-top:10px;">
+      Click anywhere to activate sound 🎵
+    </p>
+  </header>
+
+  <!-- Triangle and Info -->
+  <div class="flex flex-col items-center justify-center my-10">
+    <svg id="triangleSVG" width="500" height="400" viewBox="0 0 500 400"></svg>
+    <h3 id="breathText">Breathe...</h3>
+    <div id="countdown">Time left: 0s</div>
+    <div id="rounds">Rounds: 0</div>
+    <div id="minutes">Total minutes: 0</div>
+  </div>
+
+  <!-- Audio -->
+  <audio id="bellAudio">
+    <source src="tibetan_bell.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <audio id="backgroundAudio" loop>
+    <source src="meditation_music.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <!-- Triangle Breathing Script -->
+  <script>
+    const svg = document.getElementById("triangleSVG");
+    const textEl = document.getElementById("breathText");
+    const countdownEl = document.getElementById("countdown");
+    const roundsEl = document.getElementById("rounds");
+    const minutesEl = document.getElementById("minutes");
+    const bellAudio = document.getElementById("bellAudio");
+    const bgAudio = document.getElementById("backgroundAudio");
+
+    // Start background music on first click
+    document.addEventListener("click", () => {
+      if (bgAudio.paused) {
+        bgAudio.volume = 0.5;
+        bgAudio.play().catch(e => console.log("Audio play blocked:", e));
+      }
+    }, {once: true});
+
+    // -----------------------------
+    // Parameters
+    // -----------------------------
+    const baseWidth = 300;
+    const height = 250;
+    const particleRadius = 15;
+    const strokeColor = "#00d4ff";
+
+    const inhaleTime = 10000;
+    const holdTime = 20000;
+    const exhaleTime = 10000;
+
+    const playBellAtVertex = true;
+
+    // -----------------------------
+    // Calculate Triangle Points
+    // -----------------------------
+    const centerX = 250;
+    const topLeft  = { x: centerX - baseWidth/2, y: 100 };
+    const topRight = { x: centerX + baseWidth/2, y: 100 };
+    const bottom   = { x: centerX, y: 100 + height };
+    const vertices = [bottom, topLeft, topRight];
+    const tolerance = 2;
+
+    // Create triangle
+    const triangle = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    triangle.setAttribute("points", `${topLeft.x},${topLeft.y} ${topRight.x},${topRight.y} ${bottom.x},${bottom.y}`);
+    triangle.setAttribute("fill", "none");
+    triangle.setAttribute("stroke", strokeColor);
+    triangle.setAttribute("stroke-width", 5);
+    svg.appendChild(triangle);
+
+    // Create moving particle
+    const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    particle.setAttribute("cx", bottom.x);
+    particle.setAttribute("cy", bottom.y);
+    particle.setAttribute("r", particleRadius);
+    particle.setAttribute("fill", strokeColor);
+    svg.appendChild(particle);
+
+    // -----------------------------
+    // Breathing Phases
+    // -----------------------------
+    const phases = [
+      { text:"Inhale", duration: inhaleTime, start: bottom, end: topLeft },
+      { text:"Hold",   duration: holdTime,   start: topLeft, end: topRight },
+      { text:"Exhale", duration: exhaleTime, start: topRight, end: bottom }
+    ];
+
+    let idx = 0;
+    let rounds = 0;
+    let totalSeconds = 0;
+    let vertexFlags = {};
+    vertices.forEach((v,i) => vertexFlags[i] = false);
+
+    function animatePhase() {
+      const phase = phases[idx];
+      textEl.innerText = phase.text;
+      const startTime = performance.now();
+
+      function step(now) {
+        const t = Math.min((now - startTime)/phase.duration, 1);
+        const cx = phase.start.x + (phase.end.x - phase.start.x) * t;
+        const cy = phase.start.y + (phase.end.y - phase.start.y) * t;
+        particle.setAttribute("cx", cx);
+        particle.setAttribute("cy", cy);
+
+        // Update countdown
+        const secondsLeft = Math.ceil((phase.duration*(1-t))/1000);
+        countdownEl.innerText = `Time left: ${secondsLeft}s`;
+
+        // Play bell at vertices
+        vertices.forEach((v, i) => {
+          if (Math.abs(cx - v.x) > tolerance || Math.abs(cy - v.y) > tolerance) {
+            vertexFlags[i] = false;
+          } else if (!vertexFlags[i]) {
+            bellAudio.currentTime = 0;
+            bellAudio.play().catch(e => console.log("Audio play blocked:", e));
+            vertexFlags[i] = true;
+          }
+        });
+
+        if (t < 1) requestAnimationFrame(step);
+        else {
+          // Move to next phase
+          idx = (idx + 1) % phases.length;
+          if (idx === 0) rounds++;  // Completed a full cycle
+          totalSeconds += phase.duration / 1000;
+          roundsEl.innerText = `Rounds: ${rounds}`;
+          minutesEl.innerText = `Total minutes: ${(totalSeconds/60).toFixed(1)}`;
+          vertices.forEach((v,i) => vertexFlags[i] = false);
+
+          animatePhase();
+        }
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    animatePhase();
+  </script>
+
+</body>
+</html>
