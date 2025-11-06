@@ -459,4 +459,4 @@ with open("journey.html", "w") as f:
 </html>
 """)
 
-print( " html generated successfully ")
+print( " html generated successfully with Calm Flat Layout + Motivation + Tools + KPIs + Charts + Notes!")
